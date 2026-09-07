@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <fstream>
 
 class Tasks
 {
@@ -43,6 +44,7 @@ int main()
     std::string task_name;
     std::vector<Tasks> tasks;
     hello_fn();
+    std::ofstream file("todo.txt", std::ios_base::out);
     while (run)
     {
         setting_fn();
@@ -69,8 +71,19 @@ int main()
                 std::cout << "Выберите id задачи" << std::endl;
                 std::cin >> edit_id;
 
-                tasks.erase(tasks.begin() + std::stoi(edit_id));
-                std::cout << "Задача удалена" << std::endl;
+                for (int i = 0; i < tasks.size(); i++)
+                {
+                    if (tasks[i].id == std::stoi(edit_id))
+                    {
+                        tasks.erase(tasks.begin() + i);
+                        std::cout << "Задача удалена" << std::endl;
+                        break;
+                    }
+                    else
+                    {
+                        std::cout << "id не найден" << std::endl;
+                    }
+                }
             }
             else
             {
@@ -97,6 +110,14 @@ int main()
         }
         case 4:
         {
+            // std::ifstream file("todo.tsx");
+            // if (file.is_open())
+            // {
+            //     char temp[1000];
+            //     file.getline(temp, 1000);
+            //     std::cout << temp << std::endl;
+            // }
+            // file.close();
             for (auto task : tasks)
             {
                 task.print();
@@ -106,6 +127,17 @@ int main()
 
         case 5:
         {
+            if (file.is_open())
+            {
+                for (auto task : tasks)
+                {
+                    std::string complited = (task.isComplited == true ? "Сделанна" : "Не сделанна");
+                    file << "id: " << task.id;
+                    file << "Задача: " << task.name;
+                    file << " " << complited;
+                }
+                file.close();
+            }
             run = false;
             break;
         }
