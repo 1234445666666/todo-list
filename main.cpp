@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <sstream>
 
 class Tasks
 {
@@ -67,14 +68,41 @@ std::string get_message(Text msg)
     return "";
 };
 
+int load_tasks(std::vector<Tasks> &tasks, const std::string &filename)
+{
+    std::ifstream file(filename);
+    if (!file.is_open())
+    {
+        std::cout << "Файл не открылся" << std::endl;
+        return 1;
+    }
+
+    std::string line;
+    while (std::getline(file, line))
+    {
+        std::stringstream ss(line);
+        std::string id_str;
+        std::string name;
+        std::string status_str;
+        std::getline(ss, id_str, ';');
+        std::getline(ss, name, ';');
+        std::getline(ss, status_str);
+        unsigned id = std::stoi(id_str);
+        bool status = (std::stoi(status_str) == 1);
+        Tasks task(id, name, status);
+        tasks.push_back(task);
+    }
+    file.close();
+    return 0;
+}
+
 int main()
 {
     bool run = true;
     std::string task_name;
     std::vector<Tasks> tasks;
     std::cout << get_message(Text::hello) << std::endl;
-    std::ofstream file("todo.txt", std::ios_base::out);
-    bool found = false;
+    load_tasks(tasks, "todo.txt");
     while (run)
     {
         std::cout << get_message(Text::interface) << std::endl;
@@ -83,99 +111,106 @@ int main()
 
         std::string response;
         std::cin >> response;
-        int response_int = std::stoi(response);
-        switch (response_int)
+        try
         {
-        case 1:
-        {
-            std::cout << get_message(Text::inputTask) << std::endl;
-            std::cin >> task_name;
-            Tasks newTasks(tasks.size() + 1, task_name, false);
-            tasks.push_back(newTasks);
-            std::cout << get_message(Text::addTask) << std::endl;
-            break;
-        }
-        case 2:
-        {
-            if (!tasks.empty())
+            int response_int = std::stoi(response);
+            switch (response_int)
             {
+            case 1:
+            {
+                std::cout << get_message(Text::inputTask) << std::endl;
+                std::cin.ignore();
+                std::getline(std::cin, task_name);
+                Tasks newTasks(tasks.size() + 1, task_name, false);
+                tasks.push_back(newTasks);
+                std::cout << get_message(Text::addTask) << std::endl;
+                break;
+            }
+            case 2:
+            {
+                bool found = false;
+
+                if (!tasks.empty())
+                {
+                    std::string edit_id;
+                    std::cout << get_message(Text::inputId) << std::endl;
+                    std::cin >> edit_id;
+
+                    for (int i = 0; i < tasks.size(); i++)
+                    {
+                        if (tasks[i].id == std::stoi(edit_id))
+                        {
+                            tasks.erase(tasks.begin() + i);
+                            std::cout << get_message(Text::deleteTask) << std::endl;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                if (!found)
+                {
+                    std::cout << get_message(Text::notTask) << std::endl;
+                }
+                break;
+            }
+            case 3:
+            {
+                bool found = false;
+
+                std::string rename;
                 std::string edit_id;
                 std::cout << get_message(Text::inputId) << std::endl;
                 std::cin >> edit_id;
-
+                std::cout << get_message(Text::fixTask) << std::endl;
+                std::cin.ignore();
+                std::getline(std::cin, rename);
                 for (int i = 0; i < tasks.size(); i++)
                 {
                     if (tasks[i].id == std::stoi(edit_id))
                     {
-                        tasks.erase(tasks.begin() + i);
-                        std::cout << get_message(Text::deleteTask) << std::endl;
+                        tasks[i].name = rename;
                         found = true;
                         break;
                     }
-                    else
-                    {
-                        std::cout << get_message(Text::notId) << std::endl;
-                        !found
-                    }
-                }
-            }
-            else
-            {
-                std::cout << get_message(Text::notTask) << std::endl;
-            }
-            break;
-        }
-        case 3:
-        {
-            std::string rename;
-            std::string edit_id;
-            std::cout << get_message(Text::inputId) << std::endl;
-            std::cin >> edit_id;
-            std::cout << get_message(Text::fixTask) << std::endl;
-            std::cin >> rename;
-            for (int i = 0; i < tasks.size(); i++)
-            {
-                if (tasks[i].id == std::stoi(edit_id))
+                };
+                if (!found)
                 {
-                    tasks[i].name = rename;
+                    std::cout << get_message(Text::notId) << std::endl;
                 }
-            };
-            break;
-        }
-        case 4:
-        {
-            // std::ifstream file("todo.tsx");
-            // if (file.is_open())
-            // {
-            //     char temp[1000];
-            //     file.getline(temp, 1000);
-            //     std::cout << temp << std::endl;
-            // }
-            // file.close();
-            for (auto task : tasks)
-            {
-                task.print();
+                break;
             }
-            break;
-        }
-
-        case 5:
-        {
-            if (file.is_open())
+            case 4:
             {
                 for (auto task : tasks)
                 {
-                    file << task.id << ";" << task.name << ";" << (task.isComplited ? 1 : 0) << std::endl;
+                    task.print();
                 }
-                file.close();
+                break;
             }
-            run = false;
-            break;
-        }
 
-        default:
-            std::cout << get_message(Text::notFound) << std::endl;
-            break;
-        };
+            case 5:
+            {
+                std::ofstream file("todo.txt");
+                if (file.is_open())
+                {
+                    for (auto task : tasks)
+                    {
+                        file << task.id << ";" << task.name << ";" << (task.isComplited ? 1 : 0) << std::endl;
+                    }
+                    file.close();
+                }
+                run = false;
+                break;
+            }
+
+            default:
+                std::cout << get_message(Text::notFound) << std::endl;
+                break;
+            };
+        }
+        catch (const std::invalid_argument &e)
+        {
+            std::cout << "Это не число" << std::endl;
+        }
     }
 }
